@@ -1,10 +1,14 @@
 const notesGrid = document.getElementById('notes-grid');
+const toggleMenuBtn = document.getElementById('toggle-menu-btn');
+const colorMenu = document.getElementById('color-menu');
+
 const noteColors = [
-    '#ffe599', // Amarillo/Naranja pálido
-    '#ffad8e', // Naranja/Rojo pálido
-    '#c8ffaf', // Verde pálido
-    '#99edff', // Azul pálido
-    '#e599ff'  // Púrpura pálido
+    '#ffe599',
+    '#ffad8e',
+    '#c8ffaf',
+    '#99edff',
+    '#e599ff',
+    '#e0e0e0'
 ];
 
 function getFormattedDate() {
@@ -12,72 +16,113 @@ function getFormattedDate() {
     return new Date().toLocaleDateString('en-US', options);
 }
 
-// Función para crear el elemento de la nota
+function deleteNote(noteElement) {
+    notesGrid.removeChild(noteElement);
+}
+
+function toggleEdit(noteElement) {
+    const isEditing = noteElement.classList.toggle('editing');
+    
+    const title = noteElement.querySelector('h3');
+    const content = noteElement.querySelector('p');
+    const editBtnIcon = noteElement.querySelector('.edit-btn i');
+    
+    title.contentEditable = isEditing;
+    content.contentEditable = isEditing;
+
+    if (isEditing) {
+        editBtnIcon.classList.remove('fa-pencil-alt');
+        editBtnIcon.classList.add('fa-save');
+        title.focus();
+    } else {
+        editBtnIcon.classList.remove('fa-save');
+        editBtnIcon.classList.add('fa-pencil-alt');
+        
+        if (document.activeElement === title || document.activeElement === content) {
+            document.activeElement.blur();
+        }
+    }
+}
+
 function createNoteElement(title, content, date, color) {
     const note = document.createElement('div');
     note.classList.add('note-card');
     note.style.backgroundColor = color;
     
     note.innerHTML = `
-        <h3>${title}</h3>
-        <p>${content}</p>
+        <h3 contenteditable="false">${title}</h3>
+        <p contenteditable="false">${content}</p>
         <div class="note-footer">
             <span class="date">${date}</span>
-            <div class="note-actions">
-                <button class="action-btn delete-btn" title="Borrar nota">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
-            </div>
+        </div>
+        <div class="note-actions">
+            <button class="action-btn edit-btn" title="Modificar texto">
+                <i class="fas fa-pencil-alt"></i>
+            </button>
+            <button class="action-btn delete-btn" title="Borrar nota">
+                <i class="fas fa-trash-alt"></i>
+            </button>
         </div>
     `;
 
-    // Asignar el evento de borrado al botón de la nota
     const deleteBtn = note.querySelector('.delete-btn');
     deleteBtn.addEventListener('click', () => deleteNote(note));
+    
+    const editBtn = note.querySelector('.edit-btn');
+    editBtn.addEventListener('click', () => toggleEdit(note));
+    
+    note.querySelector('h3').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            note.querySelector('p').focus();
+        }
+    });
     
     return note;
 }
 
-// Función para añadir una nueva nota
-function addNote() {
-    const title = prompt("Título de la nueva nota (máx 50 caracteres):");
-    if (!title) return; // Cancelar si no hay título
-
-    const content = prompt("Contenido de la nota:");
-    // Usamos el índice de la siguiente nota para elegir el color,
-    // usando el operador módulo (%) para ciclar a través de los colores.
-    const colorIndex = notesGrid.children.length % noteColors.length;
-    const color = noteColors[colorIndex];
+function addNote(color) {
+    const title = "Nueva Nota";
+    const content = "Escribe tu nota aquí..."; 
     const date = getFormattedDate();
 
-    const newNote = createNoteElement(title, content || "Sin contenido...", date, color);
-    notesGrid.appendChild(newNote);
+    const newNote = createNoteElement(title, content, date, color);
+    notesGrid.prepend(newNote);
+    
+    colorMenu.classList.add('hidden');
+    
+    // Activa la edición inmediatamente después de crear la nota
+    toggleEdit(newNote);
 }
 
-// Función para borrar una nota
-function deleteNote(noteElement) {
-    const confirmDelete = confirm("¿Estás seguro de que quieres borrar esta nota?");
-    if (confirmDelete) {
-        notesGrid.removeChild(noteElement);
-    }
-}
+function renderColorMenu() {
+    colorMenu.innerHTML = '';
 
-// Inicializar con algunas notas de ejemplo, replicando la imagen
-function loadExampleNotes() {
-    const examples = [
-        { title: "The beginning of screenless design: UI jobs to be taken over by Solution Architect", date: "May 21, 2020", color: noteColors[0] },
-        { title: "13 Things You Should Give Up If You Want To Be a Successful UX Designer", date: "May 25, 2020", color: noteColors[1] },
-        { title: "The Psychology Principles Every UI/UX Designer Needs to Know", date: "June 5, 2020", color: noteColors[2] },
-        { title: "10 UI & UX Lessons from Designing My Own Product", date: "May 21, 2020", color: noteColors[4] },
-        { title: "52 Research Terms you need to know as a UX Designer", date: "May 25, 2020", color: noteColors[3] },
-        { title: "Text fields & Forms design – UI components series", date: "June 5, 2020", color: noteColors[4] }
-    ];
-
-    examples.forEach(item => {
-        const note = createNoteElement(item.title, "", item.date, item.color);
-        notesGrid.appendChild(note);
+    noteColors.forEach(color => {
+        const colorOption = document.createElement('div');
+        colorOption.classList.add('color-option');
+        colorOption.style.backgroundColor = color;
+        colorOption.title = `Crear nota ${color}`;
+        
+        colorOption.addEventListener('click', () => addNote(color));
+        
+        colorMenu.appendChild(colorOption);
     });
 }
 
-// Cargar notas de ejemplo al iniciar
-document.addEventListener('DOMContentLoaded', loadExampleNotes);
+toggleMenuBtn.addEventListener('click', () => {
+    colorMenu.classList.toggle('hidden');
+});
+
+document.addEventListener('click', (e) => {
+    if (!toggleMenuBtn.contains(e.target) && !colorMenu.contains(e.target)) {
+        colorMenu.classList.add('hidden');
+    }
+});
+
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    renderColorMenu();
+    
+});
